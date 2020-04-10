@@ -1,0 +1,377 @@
+﻿{
+  "paragraphs": [
+    {
+      "text": "import org.apache.spark.sql.hive._\r\n\r\n//HiveContext supports window functions therefore it is used instead of SqlContext\r\n//if hive context is initialized once the following code could be commented out\r\nval sqlContext = new HiveContext(sc)\r\nval df = sqlContext.read\r\n    .format(\"com.databricks.spark.csv\")\r\n    .option(\"header\", \"true\") // first line will be used as header\r\n    .option(\"inferSchema\", \"true\") // infer data types\r\n    .option(\"delimiter\", \";\") //delimeter ;\r\n    .load(\"file:/C:/Users/Tuna.Tore/Desktop/zeppelin-0.6.2-bin-all/zeppelin-0.6.2-bin-all/bin/kaggle_geo.csv\")//.cache() //the location of the CSV file.\r\n    \r\ndf.registerTempTable(\"kaggle_geo\") //temp table\r\nprintln(\"total record count \" + df.count)",
+      "dateUpdated": "2016-11-06T20:22:08+0100",
+      "config": {
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "graph": {
+          "mode": "table",
+          "height": 300,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478197303868_-1280469386",
+      "id": "20161031-192419_1834266670",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "\nimport org.apache.spark.sql.hive._\n\ndf: org.apache.spark.sql.DataFrame = [user: string, sku: string, category: string, query: string, click_time: string, query_time: string, city: string, country: string, location: string, time_spent: int]\ntotal record count 500000\r\n"
+      },
+      "dateCreated": "2016-11-03T07:21:43+0100",
+      "dateStarted": "2016-11-06T20:14:44+0100",
+      "dateFinished": "2016-11-06T20:15:50+0100",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10569",
+      "focus": true
+    },
+    {
+      "text": "//the top 10 growing (popular) queries executed by users. between the dates of '2011-09-09' AND '2011-09-10' (last day of the data)\n//LAG window function returns the last query count\n//temp table kaggle_geo is used through HiveContext which supports window functions\n\nval sqlDF = sqlContext.sql(\"SELECT D.query, AVG(ROUND((D.count - D.LAST_QUERY_COUNT) / D.LAST_QUERY_COUNT, 2) * 100) percent \" +\n\" FROM (SELECT DATE_FORMAT(query_time, 'yyyy-MM-dd') as query_time,LOWER(query) as query, COUNT(query) as count, \" +\n\" LAG(COUNT(query), 1, COUNT(query)) OVER (PARTITION BY LOWER(query) ORDER BY DATE_FORMAT(query_time, 'yyyy-MM-dd')) as LAST_QUERY_COUNT \" + \n\" FROM kaggle_geo \" +\n\" WHERE DATE_FORMAT(query_time, 'yyyy-MM-dd') BETWEEN '2011-09-09' AND '2011-09-10' \"+\n\" GROUP BY LOWER(query), DATE_FORMAT(query_time, 'yyyy-MM-dd') \" + \n\" ORDER BY query, query_time) D GROUP BY query ORDER BY percent DESC LIMIT 10\");\nsqlDF.show();\n\n//sqlDF.take(10).foreach(println)",
+      "dateUpdated": "2016-11-06T07:47:19+0100",
+      "config": {
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "graph": {
+          "mode": "table",
+          "height": 300,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478197303897_-1291627104",
+      "id": "20161101-134802_885644544",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "\nsqlDF: org.apache.spark.sql.DataFrame = [query: string, percent: double]\n+----------------+-------+\n|           query|percent|\n+----------------+-------+\n|           wacom|  850.0|\n|          stylus|  525.0|\n|      wall mount|  500.0|\n|          hoover|  450.0|\n|panasonic plasma|  400.0|\n|      ipad2 case|  400.0|\n|         freezer|  400.0|\n| air conditioner|  400.0|\n|  tv wall mounts|  400.0|\n|    media player|  350.0|\n+----------------+-------+\n\r\n"
+      },
+      "dateCreated": "2016-11-03T07:21:43+0100",
+      "dateStarted": "2016-11-06T07:47:19+0100",
+      "dateFinished": "2016-11-06T07:51:02+0100",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10570",
+      "focus": true
+    },
+    {
+      "text": "//top 10 declining queries executed by users between the dates of '2011-09-09' AND '2011-09-10' (last day of the data)\n//LAG window function returns the last query count\n\nval sqlDF = sqlContext.sql(\"SELECT D.query, AVG(ROUND((D.count - D.LAST_QUERY_COUNT) / D.LAST_QUERY_COUNT, 2) * 100) percent \" +\n\" FROM (SELECT DATE_FORMAT(query_time, 'yyyy-MM-dd') as query_time,LOWER(query) as query, COUNT(query) as count,  \" +\n\" LAG(COUNT(query), 1, COUNT(query)) OVER (PARTITION BY LOWER(query) ORDER BY DATE_FORMAT(query_time, 'yyyy-MM-dd')) as LAST_QUERY_COUNT \" + \n\" FROM kaggle_geo \" +\n\" WHERE DATE_FORMAT(query_time, 'yyyy-MM-dd') BETWEEN '2011-09-09' AND '2011-09-10'\"+\n\" GROUP BY LOWER(query), DATE_FORMAT(query_time, 'yyyy-MM-dd') \" + \n\" ORDER BY query, query_time) D GROUP BY query ORDER BY percent ASC LIMIT 10\");\nsqlDF.show();",
+      "dateUpdated": "2016-11-06T07:52:04+0100",
+      "config": {
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "graph": {
+          "mode": "table",
+          "height": 300,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478197303962_-1216601069",
+      "id": "20161101-233713_121150990",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "\nsqlDF: org.apache.spark.sql.DataFrame = [query: string, percent: double]\n+-----------------+-------+\n|            query|percent|\n+-----------------+-------+\n|             zagg|  -44.0|\n|          starfox|  -44.0|\n|             sdhc|  -44.0|\n|   power inverter|  -43.0|\n|     ps3 headsets|  -43.0|\n|      lcd monitor|  -43.0|\n|  game of thrones|  -43.0|\n|   wireless modem|  -41.5|\n|      tablet case|  -41.5|\n|portable speakers|  -41.5|\n+-----------------+-------+\n\r\n"
+      },
+      "dateCreated": "2016-11-03T07:21:43+0100",
+      "dateStarted": "2016-11-06T07:52:05+0100",
+      "dateFinished": "2016-11-06T07:56:37+0100",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10571"
+    },
+    {
+      "text": "%sql SELECT D.query, AVG(ROUND((D.count - D.LAST_QUERY_COUNT) / D.LAST_QUERY_COUNT, 2) * 100) percent\n  FROM (SELECT DATE_FORMAT(query_time, 'yyyy-MM-dd') as query_time,LOWER(query) as query, COUNT(query) as count,\n  LAG(COUNT(query), 1, COUNT(query)) OVER (PARTITION BY LOWER(query) ORDER BY DATE_FORMAT(query_time, 'yyyy-MM-dd')) as LAST_QUERY_COUNT\n  FROM kaggle_geo\n  WHERE DATE_FORMAT(query_time, 'yyyy-MM-dd') BETWEEN '${start='2011-09-09'}' AND '${end='2011-09-10'}'  \n  GROUP BY LOWER(query), DATE_FORMAT(query_time, 'yyyy-MM-dd')\n  ORDER BY query, query_time) D GROUP BY query ORDER BY percent DESC LIMIT 10",
+      "dateUpdated": "2016-11-06T20:17:08+0100",
+      "config": {
+        "colWidth": 12,
+        "graph": {
+          "mode": "multiBarChart",
+          "height": 300,
+          "optionOpen": false,
+          "keys": [
+            {
+              "name": "query",
+              "index": 0,
+              "aggr": "sum"
+            }
+          ],
+          "values": [
+            {
+              "name": "percent",
+              "index": 1,
+              "aggr": "sum"
+            }
+          ],
+          "groups": [],
+          "scatter": {
+            "xAxis": {
+              "name": "query",
+              "index": 0,
+              "aggr": "sum"
+            },
+            "yAxis": {
+              "name": "percent",
+              "index": 1,
+              "aggr": "sum"
+            }
+          }
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sql"
+      },
+      "settings": {
+        "params": {
+          "start": "2011-09-09",
+          "end": "2011-09-10"
+        },
+        "forms": {
+          "start": {
+            "name": "start",
+            "defaultValue": "'2011-09-09'",
+            "hidden": false
+          },
+          "end": {
+            "name": "end",
+            "defaultValue": "'2011-09-10'",
+            "hidden": false
+          }
+        }
+      },
+      "jobName": "paragraph_1478257901599_-354458161",
+      "id": "20161104-121141_914494482",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TABLE",
+        "msg": "query\tpercent\nwacom\t850.0\nstylus\t525.0\nwall mount\t500.0\nhoover\t450.0\npanasonic plasma\t400.0\nipad2 case\t400.0\nfreezer\t400.0\nair conditioner\t400.0\ntv wall mounts\t400.0\nmedia player\t350.0\n",
+        "comment": "",
+        "msgTable": [
+          [
+            {
+              "key": "percent",
+              "value": "wacom"
+            },
+            {
+              "key": "percent",
+              "value": "850.0"
+            }
+          ],
+          [
+            {
+              "value": "stylus"
+            },
+            {
+              "value": "525.0"
+            }
+          ],
+          [
+            {
+              "value": "wall mount"
+            },
+            {
+              "value": "500.0"
+            }
+          ],
+          [
+            {
+              "value": "hoover"
+            },
+            {
+              "value": "450.0"
+            }
+          ],
+          [
+            {
+              "value": "panasonic plasma"
+            },
+            {
+              "value": "400.0"
+            }
+          ],
+          [
+            {
+              "value": "ipad2 case"
+            },
+            {
+              "value": "400.0"
+            }
+          ],
+          [
+            {
+              "value": "freezer"
+            },
+            {
+              "value": "400.0"
+            }
+          ],
+          [
+            {
+              "value": "air conditioner"
+            },
+            {
+              "value": "400.0"
+            }
+          ],
+          [
+            {
+              "value": "tv wall mounts"
+            },
+            {
+              "value": "400.0"
+            }
+          ],
+          [
+            {
+              "value": "media player"
+            },
+            {
+              "value": "350.0"
+            }
+          ]
+        ],
+        "columnNames": [
+          {
+            "name": "query",
+            "index": 0,
+            "aggr": "sum"
+          },
+          {
+            "name": "percent",
+            "index": 1,
+            "aggr": "sum"
+          }
+        ],
+        "rows": [
+          [
+            "wacom",
+            "850.0"
+          ],
+          [
+            "stylus",
+            "525.0"
+          ],
+          [
+            "wall mount",
+            "500.0"
+          ],
+          [
+            "hoover",
+            "450.0"
+          ],
+          [
+            "panasonic plasma",
+            "400.0"
+          ],
+          [
+            "ipad2 case",
+            "400.0"
+          ],
+          [
+            "freezer",
+            "400.0"
+          ],
+          [
+            "air conditioner",
+            "400.0"
+          ],
+          [
+            "tv wall mounts",
+            "400.0"
+          ],
+          [
+            "media player",
+            "350.0"
+          ]
+        ]
+      },
+      "dateCreated": "2016-11-04T12:11:41+0100",
+      "dateStarted": "2016-11-06T20:17:09+0100",
+      "dateFinished": "2016-11-06T20:21:04+0100",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10572",
+      "focus": true
+    },
+    {
+      "text": "",
+      "dateUpdated": "2016-11-04T02:27:01+0100",
+      "config": {
+        "colWidth": 12,
+        "graph": {
+          "mode": "table",
+          "height": 300,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478266009913_-1244814807",
+      "id": "20161104-142649_170119831",
+      "dateCreated": "2016-11-04T02:26:49+0100",
+      "status": "READY",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10573"
+    }
+  ],
+  "name": "popular 10 Spark SQL",
+  "id": "2C3HPVA3S",
+  "angularObjects": {
+    "2BZMY8U1P:shared_process": [],
+    "2C2B17AVB:shared_process": [],
+    "2C2G9CANK:shared_process": [],
+    "2C1EBCCKR:shared_process": [],
+    "2BZ1K8E85:shared_process": [],
+    "2C2HF62E2:shared_process": [],
+    "2C2GBK3T9:shared_process": [],
+    "2C1SGE144:shared_process": [],
+    "2C2DU8KFW:shared_process": [],
+    "2C2RTRGDV:shared_process": [],
+    "2C13GM4HS:shared_process": [],
+    "2BYRFPWSK:shared_process": [],
+    "2BZ4C7XMR:shared_process": [],
+    "2C1XW1DQG:shared_process": [],
+    "2C33S76WQ:shared_process": [],
+    "2C2XHJ45W:shared_process": [],
+    "2C2EAZ5EF:shared_process": [],
+    "2C191URQM:shared_process": []
+  },
+  "config": {
+    "looknfeel": "default"
+  },
+  "info": {}
+}

@@ -1,0 +1,164 @@
+﻿{
+  "paragraphs": [
+    {
+      "text": "val geo = sc.textFile(\"file:/C:/Users/Tuna.Tore/Desktop/zeppelin-0.6.2-bin-all/zeppelin-0.6.2-bin-all/bin/kaggle_geo.csv\")\n\ncase class Kaggle_Geo(user: String, sku: String, category: String, query: String, click_time: String, query_time: String, city: String, country: String, location: String, time_spent: String)\n\nval kaggle_geo = geo.map(line => line.split(\";\"))\n                        .filter(line => line(0) != \"user\")\n                        .map(line => Kaggle_Geo(line(0),line(1),line(2), line(3).toLowerCase, line(4), line(5).take(10), line(6), line(7), line(8), line(9))\n)\n\nval df = kaggle_geo.toDF();\n\nprintln(\"Total record count: \" + df.count);",
+      "dateUpdated": "2016-11-06T20:10:23+0100",
+      "config": {
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "graph": {
+          "mode": "table",
+          "height": 147.60000610351562,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478210825206_74661247",
+      "id": "20161101-143213_122371101",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "\ngeo: org.apache.spark.rdd.RDD[String] = file:/C:/Users/Tuna.Tore/Desktop/zeppelin-0.6.2-bin-all/zeppelin-0.6.2-bin-all/bin/kaggle_geo.csv MapPartitionsRDD[1689] at textFile at <console>:79\n\ndefined class Kaggle_Geo\n\nkaggle_geo: org.apache.spark.rdd.RDD[Kaggle_Geo] = MapPartitionsRDD[1692] at map at <console>:85\n\ndf: org.apache.spark.sql.DataFrame = [user: string, sku: string, category: string, query: string, click_time: string, query_time: string, city: string, country: string, location: string, time_spent: string]\nTotal record count: 500000\r\n"
+      },
+      "dateCreated": "2016-11-03T11:07:05+0100",
+      "dateStarted": "2016-11-06T20:10:23+0100",
+      "dateFinished": "2016-11-06T20:10:32+0100",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10149",
+      "focus": true
+    },
+    {
+      "text": "import org.apache.spark.sql.expressions.Window;\rimport org.apache.spark.sql.functions.{lit, to_date};\r\r//partition by \rval byQuery = Window.partitionBy(\"query\").orderBy(asc(\"query_time\"));\r \r//filter records and group by order by\rval result = df.filter(to_date(df(\"query_time\")) >= to_date(lit(\"2011-09-09\")) && to_date(df(\"query_time\")) <= to_date(lit(\"2011-09-10\")))\r                    .orderBy(\"query\",\"query_time\")\r                        .groupBy(df(\"query\"),df(\"query_time\")).agg(count(\"query\"));\r  \rval resultlag = result.select(\"query\",\"query_time\",\"count(query)\").withColumn(\"LAST_QUERY_COUNT\", lag(\"count(query)\", 1).over(byQuery));\r\rval resultpercent = resultlag.groupBy(resultlag(\"query\"), resultlag(\"query_time\")).agg(sum((resultlag(\"count(query)\") - resultlag(\"LAST_QUERY_COUNT\")) / resultlag(\"LAST_QUERY_COUNT\") * 100).alias(\"sumpercent\"));\r\rval percent = resultpercent.groupBy(resultpercent(\"query\")).agg(avg(when(resultpercent(\"sumpercent\").isNull, 0).otherwise(resultpercent(\"sumpercent\"))).alias(\"percent\")).orderBy(desc(\"percent\")).limit(10).show()\r",
+      "dateUpdated": "2016-11-06T19:43:24+0100",
+      "config": {
+        "colWidth": 12,
+        "graph": {
+          "mode": "table",
+          "height": 300,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478211643604_-892060618",
+      "id": "20161103-232043_1666012600",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "+----------------+-------+\n|           query|percent|\n+----------------+-------+\n|           wacom|  850.0|\n|          stylus|  525.0|\n|      wall mount|  500.0|\n|          hoover|  450.0|\n|panasonic plasma|  400.0|\n|      ipad2 case|  400.0|\n|  tv wall mounts|  400.0|\n| air conditioner|  400.0|\n|         freezer|  400.0|\n|    media player|  350.0|\n+----------------+-------+\n\r\n\n\n\n\n\n\nimport org.apache.spark.sql.expressions.Window\nbyQuery: org.apache.spark.sql.expressions.WindowSpec = org.apache.spark.sql.expressions.WindowSpec@143a0b99\nresult: org.apache.spark.sql.DataFrame = [query: string, query_time: string, count(query): bigint]\nresultlag: org.apache.spark.sql.DataFrame = [query: string, query_time: string, count(query): bigint, LAST_QUERY_COUNT: bigint]\nresultpercent: org.apache.spark.sql.DataFrame = [query: string, query_time: string, sumpercent: double]\npercent: Unit = ()\n"
+      },
+      "dateCreated": "2016-11-03T11:20:43+0100",
+      "dateStarted": "2016-11-06T19:35:57+0100",
+      "dateFinished": "2016-11-06T19:37:15+0100",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10150"
+    },
+    {
+      "text": "import org.apache.spark.sql.expressions.Window;\rimport org.apache.spark.sql.functions.{lit, to_date};\r\r//partition by \rval byQuery = Window.partitionBy(\"query\").orderBy(asc(\"query_time\"));\r \r//filter records and group by order by\rval result = df.filter(to_date(df(\"query_time\")) >= to_date(lit(\"2011-09-09\")) && to_date(df(\"query_time\")) <= to_date(lit(\"2011-09-10\")))\r                    .orderBy(\"query\",\"query_time\")\r                        .groupBy(df(\"query\"),df(\"query_time\")).agg(count(\"query\"));\r  \rval resultlag = result.select(\"query\",\"query_time\",\"count(query)\").withColumn(\"LAST_QUERY_COUNT\", lag(\"count(query)\", 1).over(byQuery));\r\rval resultpercent = resultlag.groupBy(resultlag(\"query\"), resultlag(\"query_time\")).agg(sum((resultlag(\"count(query)\") - resultlag(\"LAST_QUERY_COUNT\")) / resultlag(\"LAST_QUERY_COUNT\") * 100).alias(\"sumpercent\"));\r\rval percent = resultpercent.groupBy(resultpercent(\"query\")).agg(avg(when(resultpercent(\"sumpercent\").isNull, 0).otherwise(resultpercent(\"sumpercent\"))).alias(\"percent\")).orderBy(asc(\"percent\")).limit(10).show()",
+      "dateUpdated": "2016-11-06T19:43:09+0100",
+      "config": {
+        "colWidth": 12,
+        "graph": {
+          "mode": "table",
+          "height": 300,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478378617672_-1494102247",
+      "id": "20161105-214337_1966550096",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "+-----------------+-------------------+\n|            query|            percent|\n+-----------------+-------------------+\n|             zagg|             -43.75|\n|          starfox|             -43.75|\n|             sdhc|             -43.75|\n|     ps3 headsets|-42.857142857142854|\n|      lcd monitor|-42.857142857142854|\n|   power inverter|-42.857142857142854|\n|  game of thrones|-42.857142857142854|\n|   wireless modem| -41.66666666666667|\n|      tablet case| -41.66666666666667|\n|portable speakers| -41.66666666666667|\n+-----------------+-------------------+\n\r\n\n\n\n\n\n\n\nimport org.apache.spark.sql.expressions.Window\nimport org.apache.spark.sql.functions.{lit, to_date}\nbyQuery: org.apache.spark.sql.expressions.WindowSpec = org.apache.spark.sql.expressions.WindowSpec@46ebd503\nresult: org.apache.spark.sql.DataFrame = [query: string, query_time: string, count(query): bigint]\nresultlag: org.apache.spark.sql.DataFrame = [query: string, query_time: string, count(query): bigint, LAST_QUERY_COUNT: bigint]\nresultpercent: org.apache.spark.sql.DataFrame = [query: string, query_time: string, sumpercent: double]\npercent: Unit = ()\n"
+      },
+      "dateCreated": "2016-11-05T09:43:37+0100",
+      "dateStarted": "2016-11-06T19:43:10+0100",
+      "dateFinished": "2016-11-06T19:44:27+0100",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10151"
+    },
+    {
+      "text": "",
+      "dateUpdated": "2016-11-06T19:15:17+0100",
+      "config": {
+        "colWidth": 12,
+        "graph": {
+          "mode": "table",
+          "height": 300,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478456107199_1860711500",
+      "id": "20161106-191507_1116142267",
+      "dateCreated": "2016-11-06T19:15:07+0100",
+      "status": "READY",
+      "progressUpdateIntervalMs": 500,
+      "$$hashKey": "object:10152"
+    }
+  ],
+  "name": "popular 10 Spark Data Frame API",
+  "id": "2BZPA4JSA",
+  "angularObjects": {
+    "2BZMY8U1P:shared_process": [],
+    "2C2B17AVB:shared_process": [],
+    "2C2G9CANK:shared_process": [],
+    "2C1EBCCKR:shared_process": [],
+    "2BZ1K8E85:shared_process": [],
+    "2C2HF62E2:shared_process": [],
+    "2C2GBK3T9:shared_process": [],
+    "2C1SGE144:shared_process": [],
+    "2C2DU8KFW:shared_process": [],
+    "2C2RTRGDV:shared_process": [],
+    "2C13GM4HS:shared_process": [],
+    "2BYRFPWSK:shared_process": [],
+    "2BZ4C7XMR:shared_process": [],
+    "2C1XW1DQG:shared_process": [],
+    "2C33S76WQ:shared_process": [],
+    "2C2XHJ45W:shared_process": [],
+    "2C2EAZ5EF:shared_process": [],
+    "2C191URQM:shared_process": []
+  },
+  "config": {
+    "looknfeel": "default"
+  },
+  "info": {}
+}
